@@ -440,16 +440,16 @@ def run_cli() -> None:
     parser = argparse.ArgumentParser(description='Prepare and run CS-LSDA-DTI experiments on data1 datasets.')
     parser.add_argument('--input_root', help='Raw dataset root containing random/e2/e3/e4.')
     parser.add_argument('--converted_root', required=True)
-    parser.add_argument('--dataset_name', required=True)
+    parser.add_argument('--dataset_name', help='Defaults to the converted-root directory name.')
     parser.add_argument('--base_config', default='config.yaml')
-    parser.add_argument('--output_dir', required=True)
+    parser.add_argument('--output_dir', help='Defaults to outputs/<dataset>.')
     parser.add_argument('--scenarios', nargs='+', default=DEFAULT_SCENARIOS)
     parser.add_argument('--folds', nargs='+', default=[str(i) for i in range(10)])
     parser.add_argument('--convert', action='store_true')
     parser.add_argument('--extract', action='store_true')
     parser.add_argument('--train', action='store_true')
-    parser.add_argument('--drug_embedding_dir', required=True)
-    parser.add_argument('--protein_embedding_dir', required=True)
+    parser.add_argument('--drug_embedding_dir', help='Defaults to embeddings/<dataset>/drug.')
+    parser.add_argument('--protein_embedding_dir', help='Defaults to embeddings/<dataset>/protein.')
     parser.add_argument('--drug_model', default='molformer')
     parser.add_argument('--protein_model', default='facebook/esm2_t30_150M_UR50D')
     parser.add_argument('--drug_batch_size', type=int, default=16)
@@ -460,7 +460,10 @@ def run_cli() -> None:
         args.extract = True
         args.train = True
     converted_root = Path(args.converted_root)
-    output_dir = Path(args.output_dir)
+    dataset_name = args.dataset_name or converted_root.name
+    output_dir = Path(args.output_dir or f'outputs/{dataset_name}')
+    drug_embedding_dir = Path(args.drug_embedding_dir or f'embeddings/{dataset_name}/drug')
+    protein_embedding_dir = Path(args.protein_embedding_dir or f'embeddings/{dataset_name}/protein')
     output_dir.mkdir(parents=True, exist_ok=True)
     if args.convert:
         if not args.input_root:
@@ -468,11 +471,11 @@ def run_cli() -> None:
         convert_dataset(input_root=Path(args.input_root), output_root=converted_root, scenarios=args.scenarios, folds=args.folds)
     if args.extract:
         csv_paths = split_files(converted_root, args.scenarios, args.folds)
-        extract_embeddings(csv_paths=csv_paths, drug_embedding_dir=Path(args.drug_embedding_dir), protein_embedding_dir=Path(args.protein_embedding_dir), drug_model=args.drug_model, protein_model=args.protein_model, drug_batch_size=args.drug_batch_size, protein_batch_size=args.protein_batch_size, output_dir=output_dir)
+        extract_embeddings(csv_paths=csv_paths, drug_embedding_dir=drug_embedding_dir, protein_embedding_dir=protein_embedding_dir, drug_model=args.drug_model, protein_model=args.protein_model, drug_batch_size=args.drug_batch_size, protein_batch_size=args.protein_batch_size, output_dir=output_dir)
     if args.train:
         base_cfg = load_config(args.base_config)
-        base_cfg['embedding']['drug_embedding_dir'] = args.drug_embedding_dir
-        base_cfg['embedding']['protein_embedding_dir'] = args.protein_embedding_dir
+        base_cfg['embedding']['drug_embedding_dir'] = str(drug_embedding_dir)
+        base_cfg['embedding']['protein_embedding_dir'] = str(protein_embedding_dir)
         all_start = time.perf_counter()
         results = []
         total_log_path = output_dir / 'total.log'
@@ -482,14 +485,14 @@ def run_cli() -> None:
             log_line(f'converted_root={converted_root}', total_log)
             log_line(f"scenarios={' '.join(args.scenarios)}", total_log)
             log_line(f"folds={' '.join(args.folds)}", total_log)
-            log_line(f'drug_embedding_dir={args.drug_embedding_dir}', total_log)
-            log_line(f'protein_embedding_dir={args.protein_embedding_dir}', total_log)
+            log_line(f'drug_embedding_dir={drug_embedding_dir}', total_log)
+            log_line(f'protein_embedding_dir={protein_embedding_dir}', total_log)
             for scenario in args.scenarios:
                 for fold in args.folds:
                     split_dir = converted_root / scenario / fold
                     fold_out_dir = output_dir / scenario / fold
                     log_line(f'========== {scenario}/{fold}: {split_dir} ==========', total_log)
-                    results.append(run_one_fold(base_cfg, split_dir, fold_out_dir, scenario, fold, args.dataset_name, total_log))
+                    results.append(run_one_fold(base_cfg, split_dir, fold_out_dir, scenario, fold, dataset_name, total_log))
             total_seconds = time.perf_counter() - all_start
             summary = summarize(results, total_seconds)
             with open(output_dir / 'summary.json', 'w', encoding='utf-8') as f:
