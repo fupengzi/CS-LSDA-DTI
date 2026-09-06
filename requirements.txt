@@ -1,0 +1,11 @@
+# Reproducible runtime for the public paper pipeline (Python 3.10).
+# For GPU runs, install the CUDA-compatible torch 2.5.1 wheel first.
+numpy==1.26.4
+pandas==2.2.3
+PyYAML==6.0.2
+scipy==1.13.1
+scikit-learn==1.5.2
+torch==2.5.1
+tqdm==4.67.1
+transformers==4.57.1
+matplotlib==3.8.4
