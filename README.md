@@ -27,7 +27,7 @@ Install the PyTorch build matching your CUDA version when running on a GPU.
 
 ## Data and Features
 
-Each input CSV must contain `SMILES`, `Protein` and `Y`. The expected split layout is：
+Each input CSV must contain `SMILES`, `Protein` and `Y`. The expected split layout is:
 
 ```text
 data/<dataset>/{random,e2,e3,e4}/{0..9}/{train,validation,test}.csv
