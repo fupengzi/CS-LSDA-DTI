@@ -56,7 +56,7 @@ The dataset name, embedding directories and output directory are inferred from `
 ## Deletion Faithfulness
 
 ```bash
-python deletion.py run --config outputs/biosnap/random/0/config.yaml --checkpoint outputs/biosnap/random/0/best_model.pt --modality protein --random_repeats 20 --output_dir outputs/deletion/protein
+python deletion.py run --config outputs/bindingdb/random/0/config.yaml --checkpoint outputs/bindingdb/random/0/best_model.pt --modality protein --random_repeats 20 --output_dir outputs/deletion/protein
 ```
 
 Use `--modality drug` for drug-token deletion. Combine protein and drug results with:
