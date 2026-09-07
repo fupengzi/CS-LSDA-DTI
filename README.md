@@ -66,3 +66,6 @@ python deletion.py plot --protein_summary outputs/deletion/protein/deletion_summ
 ```
 
 Training uses all configured epochs and saves the checkpoint with the best validation AUROC. 
+
+<img width="5609" height="3689" alt="5964b503a10ca9aaea0e454ff8f2cd0f" src="https://github.com/user-attachments/assets/827c0204-c5b5-45a0-84ef-dbb2ca6343d5" />
+
