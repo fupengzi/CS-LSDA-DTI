@@ -2,8 +2,6 @@
 
 ![Overview of the CS-LSDA-DTI architecture](assets/architecture.png)
 
-[English](README.md) | [中文](README_CN.md)
-
 CS-LSDA-DTI is a sequence-based framework for drug-target interaction prediction. It combines pretrained MoLFormer and ESM-2 representations with multi-scale convolution, then uses a protein pseudo-binding prior to guide feature modulation, local aggregation and long-range candidate selection. Alternating short-range dense attention (SDA) and long-range sparse attention (LDA) blocks integrate drug and protein information through bidirectional cross-attention. An adaptive calibration layer refines the updated representations, followed by attention pooling and complementary feature fusion for prediction.
 
 This repository provides code for data preparation, feature extraction, model training and deletion-faithfulness analysis.
