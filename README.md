@@ -1,7 +1,12 @@
-[README.md](https://github.com/user-attachments/files/31881200/README.md)
 # CS-LSDA-DTI
 
-CS-LSDA-DTI predicts drug-target interactions using MoLFormer, ESM-2 and local sparse dual attention (LSDA). This repository contains the code required for data preparation, feature extraction, model training and deletion-faithfulness analysis.
+![Overview of the CS-LSDA-DTI architecture](assets/architecture.png)
+
+[English](README.md) | [中文](README_CN.md)
+
+CS-LSDA-DTI is a sequence-based framework for drug-target interaction prediction. It combines pretrained MoLFormer and ESM-2 representations with multi-scale convolution, then uses a protein pseudo-binding prior to guide feature modulation, local aggregation and long-range candidate selection. Alternating short-range dense attention (SDA) and long-range sparse attention (LDA) blocks integrate drug and protein information through bidirectional cross-attention. An adaptive calibration layer refines the updated representations, followed by attention pooling and complementary feature fusion for prediction.
+
+This repository provides code for data preparation, feature extraction, model training and deletion-faithfulness analysis.
 
 ## Code
 
@@ -66,6 +71,3 @@ python deletion.py plot --protein_summary outputs/deletion/protein/deletion_summ
 ```
 
 Training uses all configured epochs and saves the checkpoint with the best validation AUROC. 
-
-<img width="5609" height="3689" alt="5964b503a10ca9aaea0e454ff8f2cd0f" src="https://github.com/user-attachments/assets/827c0204-c5b5-45a0-84ef-dbb2ca6343d5" />
-
