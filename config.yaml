@@ -1,0 +1,80 @@
+seed: 42
+
+data:
+  dataset_name: dataset
+  split_type: random
+  split_dir: data/converted/dataset/random/0
+  train_ratio: 0.7
+  valid_ratio: 0.1
+  test_ratio: 0.2
+  max_drug_len: 128
+  max_protein_len: 1024
+
+embedding:
+  use_cache: true
+  drug_model: molformer
+  protein_model: facebook/esm2_t30_150M_UR50D
+  freeze_encoder: true
+  drug_embedding_dir: embeddings/dataset/drug_molformer
+  protein_embedding_dir: embeddings/dataset/protein_esm2_150m
+  packed_embedding_dir:
+
+model:
+  architecture: current
+  hidden_dim: 512
+  num_heads: 8
+  fusion_layers: 4
+  ffn_dim: 2048
+  dropout: 0.1
+  attention_dropout: 0.1
+
+  drug_kernels: [1, 3, 5]
+  protein_kernels: [1, 5, 9]
+
+  lsda_types: ["sda", "lda", "sda", "lda"]
+  sda_window_sizes: [64, 128]
+  lda_strides: [8, 16]
+
+  acl_kernel_size: 3
+  acl_gamma_init: 0.0001
+
+  use_multiscale_adapter: true
+  use_acl: true
+  use_reverse_cross_attention: true
+  fusion_mode: lsda
+  pooling_type: attention
+  use_pairwise_matching_features: true
+  drug_encoder_type: plm
+  protein_encoder_type: plm
+  use_multiview_residual: false
+
+  use_pseudo_binding_prior: true
+  drug_conditioned_prior: false
+  use_fingerprint_branch: false
+  prior_modulation_scale: 0.5
+  sda_score_scale: 1.0
+  lda_topk_ratio: 1.0
+
+train:
+  task: binary_classification
+  monitor_metric: auc
+  monitor_mode: max
+  threshold: 0.5
+  tune_threshold: true
+  threshold_metric: mcc
+  batch_size: 64
+  num_workers: 0
+  progress_bar: false
+  epochs: 150
+  lr: 0.0001
+  weight_decay: 0.0001
+  warmup_ratio: 0.05
+  scheduler: cosine
+  grad_clip: 1.0
+  precision: fp16
+  prior_warmup_epochs: 4
+
+loss:
+  mse_weight: 1.0
+  mae_weight: 0.1
+  label_smoothing: 0.0
