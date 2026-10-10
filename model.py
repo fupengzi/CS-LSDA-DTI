@@ -238,7 +238,7 @@ def _masked_mean_pool_windows(tokens: torch.Tensor, mask: torch.Tensor | None, w
         pooled = pooled.masked_fill(pooled_mask.unsqueeze(-1), 0.0)
     return (pooled, pooled_mask)
 
-def _select_confident_subset(tokens: torch.Tensor, mask: torch.Tensor | None, token_scores: torch.Tensor | None, stride: int, topk_ratio: float=0.5) -> tuple[torch.Tensor, torch.Tensor | None]:
+def _select_confident_subset(tokens: torch.Tensor, mask: torch.Tensor | None, token_scores: torch.Tensor | None, stride: int, topk_ratio: float=1.0) -> tuple[torch.Tensor, torch.Tensor | None]:
     stride_subset = tokens[:, ::stride, :]
     stride_mask = mask[:, ::stride] if mask is not None else None
     if token_scores is None:
@@ -286,9 +286,9 @@ class SDAFusionBlock(nn.Module):
             protein = self.protein_acl(protein, protein_mask)
         return (drug, protein)
 
-class LDAFusionBlock(nn.Module):
+class LSAFusionBlock(nn.Module):
 
-    def __init__(self, hidden_dim: int, num_heads: int, ffn_dim: int, stride: int, dropout: float=0.1, attention_dropout: float=0.1, acl_kernel_size: int=3, acl_gamma_init: float=0.0001, use_acl: bool=True, use_reverse_cross_attention: bool=True, topk_ratio: float=0.5) -> None:
+    def __init__(self, hidden_dim: int, num_heads: int, ffn_dim: int, stride: int, dropout: float=0.1, attention_dropout: float=0.1, acl_kernel_size: int=3, acl_gamma_init: float=0.0001, use_acl: bool=True, use_reverse_cross_attention: bool=True, topk_ratio: float=1.0) -> None:
         super().__init__()
         self.stride = stride
         self.topk_ratio = topk_ratio
@@ -333,18 +333,18 @@ class GlobalCrossAttentionFusionBlock(nn.Module):
 
 class LSDAFusion(nn.Module):
 
-    def __init__(self, hidden_dim: int, num_heads: int, ffn_dim: int, lsda_types: list[str], sda_window_sizes: list[int], lda_strides: list[int], dropout: float=0.1, attention_dropout: float=0.1, acl_kernel_size: int=3, acl_gamma_init: float=0.0001, use_acl: bool=True, use_reverse_cross_attention: bool=True, sda_score_scale: float=1.0, lda_topk_ratio: float=0.5) -> None:
+    def __init__(self, hidden_dim: int, num_heads: int, ffn_dim: int, lsda_types: list[str], sda_window_sizes: list[int], lsa_strides: list[int], dropout: float=0.1, attention_dropout: float=0.1, acl_kernel_size: int=3, acl_gamma_init: float=0.0001, use_acl: bool=True, use_reverse_cross_attention: bool=True, sda_score_scale: float=1.0, lsa_topk_ratio: float=1.0) -> None:
         super().__init__()
         layers: list[nn.Module] = []
         sda_i = 0
-        lda_i = 0
+        lsa_i = 0
         for layer_type in lsda_types:
             if layer_type == 'sda':
                 layers.append(SDAFusionBlock(hidden_dim, num_heads, ffn_dim, sda_window_sizes[sda_i], dropout, attention_dropout, acl_kernel_size, acl_gamma_init, use_acl, use_reverse_cross_attention, sda_score_scale))
                 sda_i += 1
-            elif layer_type == 'lda':
-                layers.append(LDAFusionBlock(hidden_dim, num_heads, ffn_dim, lda_strides[lda_i], dropout, attention_dropout, acl_kernel_size, acl_gamma_init, use_acl, use_reverse_cross_attention, lda_topk_ratio))
-                lda_i += 1
+            elif layer_type == 'lsa':
+                layers.append(LSAFusionBlock(hidden_dim, num_heads, ffn_dim, lsa_strides[lsa_i], dropout, attention_dropout, acl_kernel_size, acl_gamma_init, use_acl, use_reverse_cross_attention, lsa_topk_ratio))
+                lsa_i += 1
             elif layer_type == 'global':
                 layers.append(GlobalCrossAttentionFusionBlock(hidden_dim, num_heads, ffn_dim, dropout, attention_dropout, acl_kernel_size, acl_gamma_init, use_acl, use_reverse_cross_attention))
             else:
@@ -373,13 +373,13 @@ class PseudoBindingPrior(nn.Module):
 
 class CSLSDADTI(nn.Module):
 
-    def __init__(self, drug_input_dim: int, protein_input_dim: int, hidden_dim: int=512, num_heads: int=8, ffn_dim: int=2048, dropout: float=0.1, attention_dropout: float=0.1, drug_kernels: list[int] | None=None, protein_kernels: list[int] | None=None, lsda_types: list[str] | None=None, sda_window_sizes: list[int] | None=None, lda_strides: list[int] | None=None, acl_kernel_size: int=3, acl_gamma_init: float=0.0001, use_multiscale_adapter: bool=True, use_acl: bool=True, use_reverse_cross_attention: bool=True, pooling_type: str='attention', use_pairwise_matching_features: bool=True, fusion_mode: str='lsda', drug_encoder_type: str='plm', protein_encoder_type: str='plm', raw_token_embedding_dim: int=128, raw_cnn_kernels: list[int] | None=None, use_pseudo_binding_prior: bool=True, prior_modulation_scale: float=0.5, sda_score_scale: float=1.0, lda_topk_ratio: float=0.5, use_multiview_residual: bool=False, graph_hidden_dim: int=128, graph_layers: int=3, protein_sequence_kernels: list[int] | None=None, multiview_alpha: float=0.2, use_graph_residual: bool=True, use_sequence_residual: bool=True, use_interaction_aware_graph_gate: bool=False) -> None:
+    def __init__(self, drug_input_dim: int, protein_input_dim: int, hidden_dim: int=512, num_heads: int=8, ffn_dim: int=2048, dropout: float=0.1, attention_dropout: float=0.1, drug_kernels: list[int] | None=None, protein_kernels: list[int] | None=None, lsda_types: list[str] | None=None, sda_window_sizes: list[int] | None=None, lsa_strides: list[int] | None=None, acl_kernel_size: int=3, acl_gamma_init: float=0.0001, use_multiscale_adapter: bool=True, use_acl: bool=True, use_reverse_cross_attention: bool=True, pooling_type: str='attention', use_pairwise_matching_features: bool=True, fusion_mode: str='lsda', drug_encoder_type: str='plm', protein_encoder_type: str='plm', raw_token_embedding_dim: int=128, raw_cnn_kernels: list[int] | None=None, use_pseudo_binding_prior: bool=True, prior_modulation_scale: float=0.5, sda_score_scale: float=1.0, lsa_topk_ratio: float=1.0, use_multiview_residual: bool=False, graph_hidden_dim: int=128, graph_layers: int=3, protein_sequence_kernels: list[int] | None=None, multiview_alpha: float=0.2, use_graph_residual: bool=True, use_sequence_residual: bool=True, use_interaction_aware_graph_gate: bool=False) -> None:
         super().__init__()
         drug_kernels = drug_kernels or [1, 3, 5]
         protein_kernels = protein_kernels or [1, 5, 9]
-        lsda_types = lsda_types or ['sda', 'lda', 'sda', 'lda']
+        lsda_types = lsda_types or ['sda', 'lsa', 'sda', 'lsa']
         sda_window_sizes = sda_window_sizes or [64, 128]
-        lda_strides = lda_strides or [8, 16]
+        lsa_strides = lsa_strides or [8, 16]
         raw_cnn_kernels = raw_cnn_kernels or [3, 5, 7]
         if drug_encoder_type not in {'plm', 'smiles_cnn'}:
             raise ValueError(f'Unsupported drug_encoder_type: {drug_encoder_type}')
@@ -404,7 +404,7 @@ class CSLSDADTI(nn.Module):
         if fusion_mode not in {'lsda', 'concat'}:
             raise ValueError(f'Unsupported fusion_mode: {fusion_mode}')
         self.fusion_mode = fusion_mode
-        self.fusion = LSDAFusion(hidden_dim=hidden_dim, num_heads=num_heads, ffn_dim=ffn_dim, lsda_types=lsda_types, sda_window_sizes=sda_window_sizes, lda_strides=lda_strides, dropout=dropout, attention_dropout=attention_dropout, acl_kernel_size=acl_kernel_size, acl_gamma_init=acl_gamma_init, use_acl=use_acl, use_reverse_cross_attention=use_reverse_cross_attention, sda_score_scale=sda_score_scale, lda_topk_ratio=lda_topk_ratio) if fusion_mode == 'lsda' else None
+        self.fusion = LSDAFusion(hidden_dim=hidden_dim, num_heads=num_heads, ffn_dim=ffn_dim, lsda_types=lsda_types, sda_window_sizes=sda_window_sizes, lsa_strides=lsa_strides, dropout=dropout, attention_dropout=attention_dropout, acl_kernel_size=acl_kernel_size, acl_gamma_init=acl_gamma_init, use_acl=use_acl, use_reverse_cross_attention=use_reverse_cross_attention, sda_score_scale=sda_score_scale, lsa_topk_ratio=lsa_topk_ratio) if fusion_mode == 'lsda' else None
         if pooling_type == 'attention':
             pooling_factory = lambda: AttentionPooling(hidden_dim)
         elif pooling_type == 'mean':
